@@ -5,6 +5,7 @@ import sentencepiece as spm
 from colorama import *
 import os
 import time
+import datetime
 
 def afficher_caractere(carac):
     print(Fore.GREEN+Style.DIM+carac)
@@ -12,11 +13,23 @@ def afficher_caractere(carac):
     os.system('clear' if os.name == 'posix' else 'cls')
 
 def waitingAnimation(caracteres = ["...","⁕⁎.","⁎⁕⁎",".⁎⁕"]):
-    print("\n"+Fore.GREEN+"————————————————————"+Fore.RESET)
     for caractere in caracteres:
         afficher_caractere(caractere)
     print(Fore.RESET)
-# transformer_blocks.py
+
+def WriteInLog(data):
+    data = str(data)
+    with open("C:/Users/chevr/Desktop/FIchiers/KIPP-AI/log.txt", "r", encoding="utf-8") as prevlog:
+        prev = prevlog.read()
+    with open("C:/Users/chevr/Desktop/FIchiers/KIPP-AI/log.txt", "w", encoding="utf-8") as newlog:
+        newlog.write(prev+"\n"+datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")+" : "+data)
+
+def show(text):
+    os.system('clear' if os.name == 'posix' else 'cls')
+    print(text)
+    WriteInLog(text)
+
+
 
 # ----------------------------
 # Self-Attention Head
@@ -85,9 +98,9 @@ class Block(nn.Module):
         return x
 
 
-print("Torch version:", torch.__version__)
-print("CUDA available:", torch.cuda.is_available())
-print("GPU name:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "None")
+show("Torch version:"+str(torch.__version__))
+show("CUDA available:"+str( torch.cuda.is_available()))
+show("GPU name:"+str( torch.cuda.get_device_name(0) if torch.cuda.is_available() else "None"))
 
 with open("C:/Users/chevr/Desktop/FIchiers/corpus.txt", "r", encoding="utf-8") as f:
     text = f.read()
@@ -105,10 +118,10 @@ sp.load("tokenizer.model")
 ids = sp.encode(text, out_type=int) 
 data = torch.tensor(ids, dtype=torch.long) 
 
-print(data)
+show(data)
 
 vocab_size = sp.get_piece_size() 
-print(vocab_size)
+show(vocab_size)
 
 block_size = 24
 embedding_dim = 128
@@ -165,9 +178,9 @@ model = KIPP()
 if input("do you want to load KIPP (y/n)") != "n":
     try:
         model.load_state_dict(torch.load("kipp_model.pth"))
-        print("Model loaded successfully.")
+        show("Model loaded successfully.")
     except FileNotFoundError:
-        print("No pre-trained model found. Starting training from scratch.")
+        show("No pre-trained model found. Starting training from scratch.")
 
 optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
 
@@ -180,9 +193,9 @@ if input("do you want to train KIPP (y/n)") != "n":
         loss.backward()
         optimizer.step()
         if step % 300 == 0:
-            print(f"Step {step}, loss={loss.item():.4f}")
+            show(f"Step {step}, loss={loss.item():.4f}")
 
-print("KIPP is trained, now you can try it \n | tell him 'by' to close the tchating")
+show("KIPP is trained, now you can try it \n | tell him 'by' to close the tchating")
 
 while True:
     sp = spm.SentencePieceProcessor()
@@ -194,13 +207,13 @@ while True:
     userInput = torch.tensor([sp.encode(user)], dtype=torch.long)
     out = model.generate(userInput, max_new_tokens=20)
     generated_ids = out[0].tolist()
-    print(sp.decode(generated_ids))
+    show(sp.decode(generated_ids))
 
 if input("do you want to save KIPP (y/n)") != "n":
     while True:
         try:
             torch.save(model.state_dict(), "kipp_model.pth")
-            print("Model saved")
+            show("Model saved")
             break
         except:
-            print("an error occured, retrying...")
+            show("an error occured, retrying...")

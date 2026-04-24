@@ -1,0 +1,28 @@
+
+===== new log =====
+Torch version:2.9.1+cu130
+===== new log =====
+CUDA available:True
+===== new log =====
+GPU name:NVIDIA GeForce RTX 4050 Laptop GPU
+===== new log =====
+tensor([ 4, 36, 36,  ...,  6, 13, 22])
+===== new log =====
+95
+===== new log =====
+Model loaded successfully.
+===== new log =====
+KIPP is trained, now you can try it 
+ | tell him 'by' to close the tchating
+===== new log =====
+Model saved
+2026-04-24 11:58:18Torch version:2.9.1+cu130
+2026-04-24 11:58:19CUDA available:True
+2026-04-24 11:58:19GPU name:NVIDIA GeForce RTX 4050 Laptop GPU
+2026-04-24 11:58:20tensor([ 4, 36, 36,  ...,  6, 13, 22])
+2026-04-24 11:58:2095
+2026-04-24 11:58:32Model loaded successfully.
+2026-04-24 11:58:52Step 0, loss=2.2036
+2026-04-24 11:58:52KIPP is trained, now you can try it 
+ | tell him 'by' to close the tchating
+2026-04-24 11:59:00Model saved
