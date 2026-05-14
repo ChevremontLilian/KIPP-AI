@@ -36,8 +36,6 @@ def show(text,inLog=False):
     if inLog:
         WriteInLog(text)
     
-
-
 # ----------------------------
 # Self-Attention Head
 # ----------------------------
