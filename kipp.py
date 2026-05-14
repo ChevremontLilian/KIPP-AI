@@ -6,33 +6,36 @@ from colorama import *
 import os
 import time
 import datetime
+
 path = "C:/Users/chevr/Desktop/FIchiers/KIPP-AI/"
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")   
 
-def afficher_caractere(carac):
-    print(Fore.GREEN+Style.DIM+carac)
-    time.sleep(0.2)
-    os.system('clear' if os.name == 'posix' else 'cls')
+def fileOpener(path, action, newText=None, encoding="utf-8"):
+    if action == 'r':
+        with open(path, action, encoding=encoding) as f:
+            return f.read()
+    elif action == 'w':
+        with open(path, action, encoding=encoding) as f:
+            oldText = fileOpener(path,"r",encoding=encoding) if os.path.exists(path) else ""
+            if newText is not None:
+                f.write(oldText+newText)
+    else:
+        raise ValueError(f"Unsupported file action: {action}")
 
-def waitingAnimation(caracteres = ["...","⁕⁎.","⁎⁕⁎",".⁎⁕"]):
-    for caractere in caracteres:
-        afficher_caractere(caractere)
-    print(Fore.RESET)
-
-def WriteInLog(data,path=path):
+def WriteInLog(data, path=path):
     data = str(data)
-    with open(path+"log.txt", "r", encoding="utf-8") as prevlog:
-        prev = prevlog.read()
-    with open(path+"log.txt", "w", encoding="utf-8") as newlog:
-        newlog.write(prev+"\n"+datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")+" : "+data)
+    fileOpener(
+        path + "log.txt",
+        "w",
+        "\n" + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " : " + data,
+    )
 
-def show(text):
+def show(text,inLog=False):
     os.system('clear' if os.name == 'posix' else 'cls')
     print(text)
-    WriteInLog(text)
-
-
-
+    if inLog:
+        WriteInLog(text)
+    
 # ----------------------------
 # Self-Attention Head
 # ----------------------------
@@ -99,32 +102,32 @@ class Block(nn.Module):
         x = x + self.ffwd(self.ln2(x))
         return x
 
-show(Fore.GREEN+Style.BRIGHT+"Initializing KIPP-AI..."+Fore.RESET)
-show("\n\n<<<<<<<<<< Launching KIPP-AI >>>>>>>>>>\nTorch version:"+str(torch.__version__)+"\n"+"CUDA available:"+str( torch.cuda.is_available())+"\n"+"GPU name:"+str( torch.cuda.get_device_name(0) if torch.cuda.is_available() else "None")+"\n\n")
-show(Back.GREEN+"\n"+" "*39+"\n ██ ▄█▀ ██ █████▄ █████▄     ▄████▄ ██ \n ████   ██ ██▄▄█▀ ██▄▄█▀ ▄▄▄ ██▄▄██ ██ \n ██ ▀█▄ ██ ██     ██         ██  ██ ██ \n"+" "*39+Back.RESET+"\n\n")
+show(Fore.GREEN+Style.BRIGHT+"Initializing KIPP-AI..."+Fore.RESET,True)
+show("\n\n<<<<<<<<<< Launching KIPP-AI >>>>>>>>>>\nTorch version:"+str(torch.__version__)+"\n"+"CUDA available:"+str( torch.cuda.is_available())+"\n"+"GPU name:"+str( torch.cuda.get_device_name(0) if torch.cuda.is_available() else "None")+"\n\n",True)
+show(Back.GREEN+"\n"+" "*39+"\n ██ ▄█▀ ██ █████▄ █████▄     ▄████▄ ██ \n ████   ██ ██▄▄█▀ ██▄▄█▀ ▄▄▄ ██▄▄██ ██ \n ██ ▀█▄ ██ ██     ██         ██  ██ ██ \n"+" "*39+Back.RESET+"\n\n",True)
 time.sleep(2)
 
-with open(path+"corpus.txt", "r", encoding="utf-8") as f:
-    text = f.read()
+text = fileOpener(path+"corpus.txt", "r")
 
 spm.SentencePieceTrainer.Train(
     input= path+"corpus.txt",
     model_prefix="tokenizer",
-    vocab_size=95,     
+    vocab_size=115,     
     model_type="bpe"
 )
 
 sp = spm.SentencePieceProcessor()
 sp.load(path+"tokenizer.model")
-    
 ids = sp.encode(text, out_type=int) 
 data = torch.tensor(ids, dtype=torch.long).to(device)
-
-show("tensor: " + str(data))
-
 vocab_size = sp.get_piece_size() 
-show("vocab_size: " + str(vocab_size))
 
+#log informations about the loaded corpus and tokenizer
+show("-- Corpus loaded and tokenized ---",True)
+show("tensor: " + str(data),True)
+show("vocab_size: " + str(vocab_size),True)
+
+# Hyperparameters
 epochs = 500
 block_size    = 64       # [OPT 7] 24→64 : plus de contexte = meilleure cohérence
 embedding_dim = 256      # [OPT 8] 128→256 : modèle plus expressif
@@ -132,9 +135,9 @@ n_heads       = 8        # head_size = 32 (256/8), plus efficace que 128/16=8
 n_layers      = 6        # 6 blocs bien dimensionnés > 16 blocs sous-dimensionnés
 lr            = 1e-3     # [OPT 9] 1e-3→3e-4 : meilleur pour la convergence
 batch_size    = 32       # [OPT 10] 16→32 : meilleur gradient, mieux pour GPU
-vocab_size    = 512 
+vocab_size    = sp.get_piece_size()
 
-
+#class KIPP : th heart of the model, inspired by the dev codewithaarohi ,go check her work here : https://github.com/codewithaarohi/Build_mini_gpt_with_tokenizer/tree/main/L-3_tinygpt_adding_tokenizer
 class KIPP(nn.Module):
     def __init__(self,device=device):
         super().__init__()
@@ -234,7 +237,7 @@ class KIPP(nn.Module):
 
         # --- 4. Parametres d'entrainement ---
         eval_interval    = 5000    # evaluer toutes les N etapes
-        patience         = 5      # nombre d'evaluations sans amelioration avant d'arreter
+        patience         = 5     # nombre d'evaluations sans amelioration avant d'arreter
         convergence_goal = 0.005  # seuil de val loss pour considerer la convergence atteinte
 
         # --- Variables de suivi ---
@@ -277,6 +280,7 @@ class KIPP(nn.Module):
                         f"Step {step:>6} | "
                         f"train loss: {losses['train']:.4f} | "
                         f"val loss: {losses['val']:.4f} | "
+                        f"avg loss: {loss_sum / step:.4f} | "
                         f"lr: {current_lr:.2e}"
                     )
 
@@ -333,13 +337,17 @@ class KIPP(nn.Module):
             user = input(">>")
             if user == "/quit":
                 break
-            waitingAnimation()
             userInput = torch.tensor([sp.encode(user)], dtype=torch.long).to(device)
-            out = model.generate(userInput, max_new_tokens=20).to(device)
+            out = model.generate(userInput, max_new_tokens=200).to(device)
             generated_ids = out[0].tolist()
             show(sp.decode(generated_ids))
 
 model = KIPP()
+
+#show thz number of parameters in the model
+num_params = sum(p.numel() for p in KIPP().parameters())
+show(f"Model initialized with {num_params:,} parameters.",True)
+
 model.load()
 model.train()
 model.chat()
